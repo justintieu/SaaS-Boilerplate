@@ -75,6 +75,7 @@ jobs:
         run: npm run test-storybook:ci
 
       - name: Run E2E tests
+        if: env.PERCY_TOKEN != '' && env.CLERK_SECRET_KEY != ''
         run: npx percy exec -- npm run test:e2e
         env:
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
