@@ -15,7 +15,7 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     # Only run when the deployment was successful and CHECKLY_ACCOUNT_ID is set
-    if: github.event.deployment_status.state == 'success' && env.CHECKLY_ACCOUNT_ID != ''
+    if: github.event.deployment_status.state == 'success'
 
     name: Test E2E on Checkly
     runs-on: ubuntu-latest
@@ -31,23 +31,26 @@ jobs:
         run: echo "CHECKLY_TEST_REPO_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ',' '\n' | sed 's/^ //' | grep -e 'origin/' | head -1 | sed 's/\origin\///g')" >> $GITHUB_ENV
 
       - uses: actions/setup-node@v4
+        if: env.CHECKLY_ACCOUNT_ID != ''
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Restore or cache node_modules
         id: cache-node-modules
+        if: env.CHECKLY_ACCOUNT_ID != ''
         uses: actions/cache@v4
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        if: steps.cache-node-modules.outputs.cache-hit != 'true' && env.CHECKLY_ACCOUNT_ID != ''
         run: npm ci
 
       - name: Run checks # run the checks passing in the ENVIRONMENT_URL and recording a test session.
         id: run-checks
+        if: env.CHECKLY_ACCOUNT_ID != ''
         run: npx checkly test --reporter=github --record
         env:
           VERCEL_BYPASS_TOKEN: ${{ secrets.VERCEL_BYPASS_TOKEN }}
@@ -55,9 +58,10 @@ jobs:
 
       - name: Create summary # export the markdown report to the job summary.
         id: create-summary
+        if: env.CHECKLY_ACCOUNT_ID != ''
         run: cat checkly-github-report.md > $GITHUB_STEP_SUMMARY
 
       - name: Deploy checks # if the test run was successful and we are on Production, deploy the checks
         id: deploy-checks
-        if: steps.run-checks.outcome == 'success' && github.event.deployment_status.environment == 'Production'
+        if: steps.run-checks.outcome == 'success' && github.event.deployment_status.environment == 'Production' && env.CHECKLY_ACCOUNT_ID != ''
         run: npx checkly deploy --force
