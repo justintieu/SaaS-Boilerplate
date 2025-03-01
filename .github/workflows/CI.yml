@@ -102,6 +102,7 @@ jobs:
           fetch-depth: 0
 
       - name: crowdin action
+        if: env.CROWDIN_PROJECT_ID != ''
         uses: crowdin/github-action@v2
         with:
           upload_sources: true
